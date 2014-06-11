@@ -25,14 +25,25 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
     }
 
     func tableView(tableView: UITableView!, numberOfRowsInSection section: Int) -> Int {
-        return 10
+        return tableData.count
     }
     
     func tableView(tableView: UITableView!, cellForRowAtIndexPath indexPath: NSIndexPath!) -> UITableViewCell! {
-        let cell:UITableViewCell = UITableViewCell(style:UITableViewCellStyle.Subtitle, reuseIdentifier:"MyTestCell")
+        let cell: UITableViewCell = UITableViewCell(style: UITableViewCellStyle.Subtitle, reuseIdentifier: "MyTestCell")
         
-        cell.text = "Row #\(indexPath.row)"
-        cell.detailTextLabel.text = "Subtitle #\(indexPath.row)"
+        var rowData: NSDictionary = self.tableData[indexPath.row] as NSDictionary
+        
+        cell.text = rowData["trackName"] as String
+        
+        var urlString: NSString = rowData["artworkUrl60"] as NSString
+        var imgURL: NSURL = NSURL(string: urlString)
+        
+        var imgData: NSData = NSData(contentsOfURL: imgURL)
+        cell.image = UIImage(data: imgData)
+        
+        var formattedPrice:NSString = rowData["formattedPrice"] as NSString
+        
+        cell.detailTextLabel.text = formattedPrice
         
         return cell
     }
@@ -48,8 +59,27 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
         var request: NSURLRequest = NSURLRequest(URL: url)
         var connection: NSURLConnection = NSURLConnection(request: request, delegate: self, startImmediately: false)
         
-        println("Search iTunes API at url \(url)"
+        println("Search iTunes API at url \(url)")
         connection.start()
+    }
+    
+    func connection(didReceiveResponse: NSURLConnection!, didReceiveResponse response: NSURLResponse!) {
+        self.data = NSMutableData()
+    }
+    
+    func connection(connection: NSURLConnection!, didReceiveData data: NSData!) {
+        self.data.appendData(data)
+    }
+    
+    func connectionDidFinishLoading(connection: NSURLConnection!) {
+        var err: NSError
+        var jsonResult: NSDictionary = NSJSONSerialization.JSONObjectWithData(data, options: NSJSONReadingOptions.MutableContainers, error: nil) as NSDictionary
+        
+        if jsonResult.count > 0 && jsonResult["results"].count > 0 {
+            var results: NSArray = jsonResult["results"] as NSArray
+            self.tableData = results
+            self.appsTableView.reloadData()
+        }
     }
 }
 
